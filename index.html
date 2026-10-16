@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Evaluación gamificada de 5 preguntas sobre planes de emergencia y supervivencia urbana. EUNOia SST Labs.">
+<title>Manual de Emergencias EUNOia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Concepto: ruta de evacuación. El avance es un recorrido de 5 nodos que termina en una señal verde de SALIDA. */
+:root {
+  --bg: #FAF8FD;
+  --surface: #FFFFFF;
+  --ink: #1E1630;
+  --muted: #655D78;
+  --line: #E3DCEE;
+  --brand: #7B52AB;
+  --brand-strong: #5C3889;
+  --brand-soft: #F0EAF8;
+  --on-brand: #FFFFFF;
+  --ok: #0C8A72;
+  --ok-fill: #14B899;
+  --ok-soft: #E0F5F0;
+  --bad: #B83A2B;
+  --bad-soft: #FBEAE6;
+  --font-display: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --font-body: "Inter", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #130E1C; --surface: #1C1528; --ink: #F2EDF9; --muted: #A99FBC; --line: #31264A;
+    --brand: #A98BD3; --brand-strong: #CDB9EC; --brand-soft: #2B2042; --on-brand: #1A1128;
+    --ok: #3DD6B5; --ok-fill: #14B899; --ok-soft: #12332D; --bad: #FF9080; --bad-soft: #3B1D1A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #130E1C; --surface: #1C1528; --ink: #F2EDF9; --muted: #A99FBC; --line: #31264A;
+  --brand: #A98BD3; --brand-strong: #CDB9EC; --brand-soft: #2B2042; --on-brand: #1A1128;
+  --ok: #3DD6B5; --ok-fill: #14B899; --ok-soft: #12332D; --bad: #FF9080; --bad-soft: #3B1D1A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.55; margin: 0;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+/* Encabezado de marca */
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.wordmark { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: var(--brand-strong); }
+.wordmark span { font-weight: 600; color: var(--muted); }
+.tag { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* Tarjetas */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
+@media (max-width: 480px) { .card { padding: 20px; } }
+.eyebrow { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--brand); }
+.hero h1 { font-size: clamp(1.7rem, 5.5vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 12px; }
+.hero .lead { color: var(--muted); max-width: 52ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 20px 0 0; padding: 0; list-style: none; font-size: .9rem; font-weight: 500; }
+.facts li { display: flex; align-items: center; gap: 8px; }
+.facts li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok-fill); }
+
+/* Formulario */
+form { display: grid; gap: 16px; margin-top: 24px; }
+label { display: grid; gap: 6px; font-weight: 600; font-size: .9rem; }
+label small { font-weight: 400; color: var(--muted); }
+input[type="text"] {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line);
+  border-radius: 12px; padding: 13px 14px; width: 100%; min-width: 0;
+}
+input[type="text"]:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px var(--brand-soft); }
+input[aria-invalid="true"] { border-color: var(--bad); }
+.err { color: var(--bad); font-size: .85rem; font-weight: 500; min-height: 1.2em; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 12px; border: 1.5px solid transparent; padding: 13px 22px;
+  font-weight: 600; font-family: var(--font-display); font-size: .95rem;
+  background: var(--brand); color: var(--on-brand); transition: transform .12s ease, background .12s ease;
+}
+.btn:hover { background: var(--brand-strong); color: #fff; }
+:root[data-theme="dark"] .btn:hover { color: #1A1128; }
+.btn:active { transform: translateY(1px); }
+.btn.ghost { background: transparent; color: var(--brand-strong); border-color: var(--line); }
+.btn.ghost:hover { background: var(--brand-soft); color: var(--brand-strong); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Ruta de evacuación (progreso) */
+.route { display: flex; align-items: center; }
+.node {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: .8rem;
+  background: var(--surface); border: 2px solid var(--line); color: var(--muted);
+}
+.node.done { background: var(--ok-fill); border-color: var(--ok-fill); color: #06231D; }
+.node.bad { background: var(--bad); border-color: var(--bad); color: #fff; }
+.node.now { border-color: var(--brand); color: var(--brand-strong); box-shadow: 0 0 0 4px var(--brand-soft); }
+.seg { flex: 1; height: 3px; background: repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 14px); }
+.seg.done { background: var(--ok-fill); }
+.exit {
+  flex: none; margin-left: 10px; background: var(--ok-fill); color: #06231D; border-radius: 6px;
+  font-family: var(--font-display); font-weight: 800; font-size: .7rem; letter-spacing: .08em; padding: 6px 9px;
+  display: flex; align-items: center; gap: 5px;
+}
+.exit svg { width: 14px; height: 14px; }
+.qmeta { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 14px 0 0; font-size: .9rem; color: var(--muted); font-weight: 500; }
+.qmeta strong { color: var(--ink); font-family: var(--font-display); }
+.pts { font-variant-numeric: tabular-nums; }
+
+/* Pregunta */
+.tema { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--brand); }
+.question h2 { font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: 700; margin: 8px 0 20px; }
+.opts { display: grid; gap: 10px; }
+.opt {
+  display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; text-align: left;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 14px; padding: 13px 14px; min-width: 0;
+  transition: border-color .12s ease, background .12s ease;
+}
+.opt:hover:not([disabled]) { border-color: var(--brand); background: var(--brand-soft); }
+.opt .k {
+  width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: .85rem; background: var(--surface); border: 1.5px solid var(--line); color: var(--brand-strong);
+}
+.opt .t { padding-top: 4px; overflow-wrap: anywhere; }
+.opt[disabled] { cursor: default; }
+.opt.right { border-color: var(--ok-fill); background: var(--ok-soft); }
+.opt.right .k { background: var(--ok-fill); border-color: var(--ok-fill); color: #06231D; }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .k { background: var(--bad); border-color: var(--bad); color: #fff; }
+.opt.dim { opacity: .55; }
+.fb { margin-top: 18px; border-radius: 14px; padding: 16px 18px; border: 1.5px solid; }
+.fb.ok { background: var(--ok-soft); border-color: var(--ok-fill); }
+.fb.no { background: var(--bad-soft); border-color: var(--bad); }
+.fb h3 { font-size: 1rem; margin-bottom: 4px; }
+.fb.ok h3 { color: var(--ok); }
+.fb.no h3 { color: var(--bad); }
+.fb p { font-size: .95rem; }
+.nextrow { display: flex; justify-content: flex-end; margin-top: 18px; }
+
+/* Resultados */
+.result-top { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+@media (max-width: 480px) { .result-top { grid-template-columns: 1fr; justify-items: start; } }
+.ring { position: relative; width: 140px; height: 140px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .bg { stroke: var(--line); }
+.ring .fg { stroke: var(--ok-fill); stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+.ring .num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .num b { font-family: var(--font-display); font-size: 2.3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring .num span { font-size: .75rem; color: var(--muted); font-weight: 500; }
+.level { font-size: clamp(1.4rem, 4.5vw, 1.9rem); font-weight: 800; letter-spacing: -0.01em; margin: 6px 0 6px; }
+.stats { display: flex; gap: 8px 24px; flex-wrap: wrap; margin-top: 12px; font-size: .95rem; }
+.stats b { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.review { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 8px; }
+.review li { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: .93rem; }
+.review .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: .75rem; font-weight: 700; background: var(--ok-fill); color: #06231D; }
+.review .dot.no { background: var(--bad); color: #fff; }
+.review .rp { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 500; }
+.cert { background: var(--brand-soft); border-color: transparent; }
+.cert h3 { font-size: 1.1rem; margin-bottom: 4px; }
+.cert p { color: var(--muted); font-size: .95rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.note { font-size: .88rem; color: var(--muted); margin-top: 12px; min-height: 1.3em; }
+.linkbox { display: none; margin-top: 10px; }
+.linkbox.on { display: block; }
+footer { font-size: .8rem; color: var(--muted); text-align: left; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <div class="wordmark">EUNOia <span>SST Labs</span></div>
+    <div class="tag">Seguridad y Salud en el Trabajo</div>
+  </header>
+
+  <!-- Inicio -->
+  <section id="intro" class="card hero" aria-labelledby="t-intro">
+    <p class="eyebrow">Evaluación gamificada</p>
+    <h1 id="t-intro">Manual Integral de Emergencias y Supervivencia Urbana</h1>
+    <p class="lead">Pon a prueba lo aprendido sobre el plan de emergencias. Responde cinco preguntas, recibe la explicación al instante y descarga tu constancia de participación.</p>
+    <ul class="facts">
+      <li>5 preguntas</li>
+      <li>100 puntos máximo</li>
+      <li>Unos 3 minutos</li>
+    </ul>
+    <form id="form" novalidate>
+      <label for="nombre">Nombre completo *
+        <input type="text" id="nombre" name="nombre" autocomplete="name" placeholder="Ej: Ana María Gómez" aria-describedby="nombre-err">
+        <span class="err" id="nombre-err" aria-live="polite"></span>
+      </label>
+      <label for="cargo">Área / Cargo <small>(opcional)</small>
+        <input type="text" id="cargo" name="cargo" autocomplete="organization-title" placeholder="Ej: Operaciones, Administración">
+      </label>
+      <div><button class="btn" type="submit">Comenzar evaluación</button></div>
+    </form>
+  </section>
+
+  <!-- Preguntas -->
+  <section id="quiz" hidden aria-live="polite">
+    <div class="card">
+      <div class="route" id="route" aria-hidden="true"></div>
+      <div class="qmeta"><span>Pregunta <strong id="qn">1</strong> de 5</span><span class="pts"><strong id="qp">0</strong> pts</span></div>
+      <div class="question" style="margin-top:22px">
+        <p class="tema" id="tema"></p>
+        <h2 id="qtext"></h2>
+        <div class="opts" id="opts" role="group" aria-labelledby="qtext"></div>
+        <div id="fb" hidden></div>
+        <div class="nextrow"><button class="btn" id="next" type="button" hidden>Siguiente pregunta</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Resultados -->
+  <section id="result" hidden>
+    <div class="card">
+      <div class="result-top">
+        <div class="ring" role="img" aria-label="Puntaje total">
+          <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="fg" id="ringfg" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+          <div class="num"><b id="rscore">0</b><span>de 100 pts</span></div>
+        </div>
+        <div>
+          <p class="eyebrow" id="rname"></p>
+          <h2 class="level" id="rlevel"></h2>
+          <p id="rmsg" style="color:var(--muted)"></p>
+          <div class="stats"><span>Aciertos <b id="raciertos">0/5</b></span><span>Rendimiento <b id="rperf">0%</b></span></div>
+        </div>
+      </div>
+      <ul class="review" id="review"></ul>
+    </div>
+
+    <div class="card cert" style="margin-top:24px">
+      <h3>Constancia de participación SG-SST</h3>
+      <p>Descarga el soporte de esta evaluación en PDF para archivarlo como evidencia de capacitación.</p>
+      <div class="actions">
+        <button class="btn" id="dl" type="button">Descargar constancia en PDF</button>
+        <button class="btn ghost" id="retry" type="button">Intentar de nuevo</button>
+        <button class="btn ghost" id="share" type="button">Copiar enlace para compartir</button>
+      </div>
+      <p class="note" id="note" role="status" aria-live="polite"></p>
+      <div class="linkbox" id="linkbox"><input type="text" id="linkval" readonly aria-label="Enlace para compartir"></div>
+      <p class="note" style="margin-top:4px">Comparte este mismo enlace con tus compañeros para que también hagan la evaluación.</p>
+    </div>
+  </section>
+
+  <footer>© EUNOia SST Labs · Herramienta gamificada de evaluación en Seguridad y Salud en el Trabajo</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  var QUESTIONS = [
+    { tema: "Sismo", q: "Estás dentro de un edificio y empieza a temblar fuerte. ¿Cuál es la acción más segura durante el movimiento?",
+      opts: ["Correr hacia las escaleras y bajar lo más rápido posible", "Agacharte, cubrirte bajo una mesa resistente y sujetarte hasta que pase", "Usar el ascensor para salir cuanto antes", "Asomarte a la ventana para ver qué ocurre"],
+      a: 1, why: "Durante el sismo se aplica agacharse, cubrirse y sujetarse. Correr o usar escaleras y ascensores en pleno movimiento aumenta el riesgo de caídas y de golpes por objetos." },
+    { tema: "Kit de emergencia", q: "¿Para cuánto tiempo, como mínimo, debe alcanzar la mochila de emergencia de una persona?",
+      opts: ["Unas 3 horas", "Un día completo", "72 horas", "Un mes"],
+      a: 2, why: "La recomendación general es cubrir al menos 72 horas: agua, alimentos no perecederos, linterna, radio, botiquín, documentos y medicamentos necesarios." },
+    { tema: "Evacuación", q: "Ya evacuaste el edificio de forma segura. ¿Qué haces ahora?",
+      opts: ["Regresas por tus pertenencias mientras no haya humo", "Te vas a casa sin avisar a nadie", "Vas al punto de encuentro y te reportas con el coordinador o brigadista", "Esperas junto a la puerta principal"],
+      a: 2, why: "En el punto de encuentro se hace el conteo de personas. Si te vas sin reportarte, el equipo de emergencia puede arriesgarse buscándote." },
+    { tema: "Incendio", q: "Hay humo en el pasillo durante la evacuación por incendio. ¿Qué es lo que NO debes hacer?",
+      opts: ["Usar el ascensor", "Cubrir nariz y boca con un paño", "Desplazarte agachado, cerca del piso", "Cerrar las puertas que vas dejando atrás"],
+      a: 0, why: "El ascensor puede quedar atrapado o llenarse de humo, y su energía puede cortarse. Se evacua siempre por las escaleras, agachado y con la vía cubierta." },
+    { tema: "Reporte de emergencias", q: "En Colombia, ¿a qué número llamas para reportar una emergencia desde cualquier teléfono?",
+      opts: ["112", "911", "123", "155"],
+      a: 2, why: "El 123 es la línea única de emergencias en Colombia. Al llamar, da tu ubicación exacta, qué pasó y cuántas personas hay afectadas, y no cuelgues primero." }
+  ];
+  var PTS = 20, N = QUESTIONS.length;
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { name: "", cargo: "", i: 0, score: 0, picks: [] };
+  var LETTERS = ["A", "B", "C", "D"];
+  var CHECK = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+  var RUNNER = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="9.5" cy="2.8" r="1.6"/><path d="M6.2 5.2l2.4-.6c.5-.1 1 .1 1.3.5l1.2 1.8 1.8.5a.8.8 0 01-.4 1.5l-2.2-.6a1 1 0 01-.6-.4l-.5-.7-.6 2.4 1.9 1.7c.2.2.3.5.3.8l-.3 2.3a.8.8 0 01-1.6-.2l.2-1.8-2-1.6-.9 2.3a.8.8 0 01-.7.5l-2.3.1a.8.8 0 010-1.6l1.7-.1 1.4-4.1-1.1.3-.7 1.7a.8.8 0 01-1.5-.5l.9-2.4c.1-.3.4-.5.7-.6z"/></svg>';
+
+  function show(id) {
+    ["intro", "quiz", "result"].forEach(function (s) { $(s).hidden = s !== id; });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function drawRoute() {
+    var h = "";
+    for (var k = 0; k < N; k++) {
+      var cls = "node";
+      var inner = String(k + 1);
+      if (k < state.i || (k === state.i && state.picks[k] !== undefined)) {
+        var ok = state.picks[k] === QUESTIONS[k].a;
+        cls += ok ? " done" : " bad";
+        inner = ok ? CHECK : "!";
+      } else if (k === state.i) { cls += " now"; }
+      h += '<div class="' + cls + '">' + inner + '</div>';
+      if (k < N - 1) h += '<div class="seg' + (k < state.i ? " done" : "") + '"></div>';
+    }
+    h += '<div class="exit" title="Salida">' + RUNNER + 'SALIDA</div>';
+    $("route").innerHTML = h;
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[state.i];
+    $("qn").textContent = state.i + 1;
+    $("qp").textContent = state.score;
+    $("tema").textContent = q.tema;
+    $("qtext").textContent = q.q;
+    $("fb").hidden = true; $("fb").innerHTML = "";
+    $("next").hidden = true;
+    var box = $("opts"); box.innerHTML = "";
+    q.opts.forEach(function (t, idx) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.dataset.idx = idx;
+      var k = document.createElement("span"); k.className = "k"; k.textContent = LETTERS[idx];
+      var tx = document.createElement("span"); tx.className = "t"; tx.textContent = t;
+      b.appendChild(k); b.appendChild(tx);
+      b.addEventListener("click", function () { answer(idx); });
+      box.appendChild(b);
+    });
+    drawRoute();
+  }
+
+  function answer(idx) {
+    if (state.picks[state.i] !== undefined) return;
+    var q = QUESTIONS[state.i];
+    state.picks[state.i] = idx;
+    var ok = idx === q.a;
+    if (ok) state.score += PTS;
+    var btns = $("opts").querySelectorAll(".opt");
+    btns.forEach(function (b, k) {
+      b.disabled = true;
+      if (k === q.a) b.classList.add("right");
+      else if (k === idx) b.classList.add("wrong");
+      else b.classList.add("dim");
+    });
+    $("qp").textContent = state.score;
+    var fb = $("fb");
+    fb.className = "fb " + (ok ? "ok" : "no");
+    fb.innerHTML = "";
+    var h = document.createElement("h3");
+    h.textContent = ok ? "Correcto, +" + PTS + " pts" : "No es esa. La respuesta correcta es la " + LETTERS[q.a];
+    var p = document.createElement("p"); p.textContent = q.why;
+    fb.appendChild(h); fb.appendChild(p); fb.hidden = false;
+    var nx = $("next");
+    nx.textContent = state.i === N - 1 ? "Ver mis resultados" : "Siguiente pregunta";
+    nx.hidden = false; nx.focus({ preventScroll: true });
+    drawRoute();
+  }
+
+  function level(pct) {
+    if (pct >= 80) return { t: "Listo para actuar", m: "Dominas el plan de emergencias. Ayuda a tus compañeros a prepararse igual." };
+    if (pct >= 60) return { t: "Vas por buen camino", m: "Tienes la base. Repasa las preguntas que fallaste y vuelve a intentarlo." };
+    return { t: "Repasa el plan", m: "Revisa el manual con tu equipo SST y vuelve a intentarlo cuando quieras." };
+  }
+
+  function showResult() {
+    var hits = state.picks.filter(function (p, k) { return p === QUESTIONS[k].a; }).length;
+    var pct = Math.round(state.score);
+    var lv = level(pct);
+    $("rname").textContent = state.name;
+    $("rlevel").textContent = lv.t;
+    $("rmsg").textContent = lv.m;
+    $("raciertos").textContent = hits + "/" + N;
+    $("rperf").textContent = pct + "%";
+    $("rscore").textContent = state.score;
+    var rv = $("review"); rv.innerHTML = "";
+    QUESTIONS.forEach(function (q, k) {
+      var ok = state.picks[k] === q.a;
+      var li = document.createElement("li");
+      var d = document.createElement("span"); d.className = "dot" + (ok ? "" : " no"); d.innerHTML = ok ? CHECK : "!";
+      var t = document.createElement("span"); t.textContent = q.tema;
+      var s = document.createElement("span"); s.className = "rp"; s.textContent = (ok ? PTS : 0) + " pts";
+      li.appendChild(d); li.appendChild(t); li.appendChild(s); rv.appendChild(li);
+    });
+    show("result");
+    var fg = $("ringfg");
+    fg.style.strokeDashoffset = "326.7";
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      fg.style.strokeDashoffset = String(326.7 * (1 - state.score / 100));
+    }); });
+  }
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var n = $("nombre").value.trim().replace(/\s+/g, " ");
+    if (n.length < 3) {
+      $("nombre").setAttribute("aria-invalid", "true");
+      $("nombre-err").textContent = "Escribe tu nombre completo para generar la constancia.";
+      $("nombre").focus(); return;
+    }
+    $("nombre").removeAttribute("aria-invalid"); $("nombre-err").textContent = "";
+    state = { name: n, cargo: $("cargo").value.trim(), i: 0, score: 0, picks: [] };
+    show("quiz"); renderQuestion();
+  });
+
+  $("next").addEventListener("click", function () {
+    if (state.i < N - 1) { state.i++; renderQuestion(); window.scrollTo({ top: 0, behavior: "auto" }); }
+    else showResult();
+  });
+
+  $("retry").addEventListener("click", function () {
+    state.i = 0; state.score = 0; state.picks = [];
+    $("note").textContent = ""; $("linkbox").classList.remove("on");
+    show("quiz"); renderQuestion();
+  });
+
+  $("share").addEventListener("click", function () {
+    var url = location.href.split("#")[0];
+    var lv = $("linkval"); lv.value = url;
+    function fallback() {
+      $("linkbox").classList.add("on"); lv.focus(); lv.select();
+      $("note").textContent = "Copia el enlace de arriba y compártelo con tus compañeros.";
+    }
+    try {
+      navigator.clipboard.writeText(url).then(function () {
+        $("note").textContent = "Enlace copiado. Compártelo con tus compañeros.";
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  /* Constancia PDF */
+  function fit(doc, text, maxW, size, min) {
+    var s = size; doc.setFontSize(s);
+    while (doc.getTextWidth(text) > maxW && s > min) { s -= 1; doc.setFontSize(s); }
+    return s;
+  }
+
+  function buildPdf() {
+    var J = window.jspdf && window.jspdf.jsPDF; if (!J) return null;
+    var d = new J({ orientation: "landscape", unit: "mm", format: "a4" });
+    var W = 297, H = 210, cx = W / 2;
+    var hits = state.picks.filter(function (p, k) { return p === QUESTIONS[k].a; }).length;
+    d.setFillColor(123, 82, 171); d.rect(0, 0, W, 34, "F");
+    d.setTextColor(255, 255, 255); d.setFont("helvetica", "bold"); d.setFontSize(22);
+    d.text("EUNOia SST Labs", 20, 21);
+    d.setFont("helvetica", "normal"); d.setFontSize(10);
+    d.text("SEGURIDAD Y SALUD EN EL TRABAJO", W - 20, 21, { align: "right" });
+    d.setDrawColor(20, 184, 153); d.setLineWidth(1.2); d.rect(10, 44, W - 20, H - 54);
+    d.setTextColor(123, 82, 171); d.setFont("helvetica", "bold"); d.setFontSize(26);
+    d.text("Constancia de participación", cx, 66, { align: "center" });
+    d.setTextColor(90, 82, 108); d.setFont("helvetica", "normal"); d.setFontSize(12);
+    d.text("Se deja constancia de que", cx, 80, { align: "center" });
+    d.setTextColor(30, 22, 48); d.setFont("helvetica", "bold");
+    fit(d, state.name, W - 60, 30, 14); d.text(state.name, cx, 98, { align: "center" });
+    var y = 106;
+    if (state.cargo) {
+      d.setFont("helvetica", "normal"); d.setTextColor(90, 82, 108); d.setFontSize(12);
+      d.text(state.cargo, cx, y, { align: "center" }); y += 10;
+    }
+    d.setFont("helvetica", "normal"); d.setTextColor(90, 82, 108); d.setFontSize(12);
+    d.text("completó la evaluación gamificada", cx, y + 4, { align: "center" });
+    d.setFont("helvetica", "bold"); d.setTextColor(30, 22, 48); d.setFontSize(16);
+    d.text("Manual Integral de Emergencias y Supervivencia Urbana", cx, y + 14, { align: "center" });
+    var by = y + 34;
+    var cols = [[cx - 70, String(state.score) + " / 100", "PUNTAJE"], [cx, hits + " / " + N, "ACIERTOS"], [cx + 70, state.score + "%", "RENDIMIENTO"]];
+    cols.forEach(function (c) {
+      d.setTextColor(12, 138, 114); d.setFont("helvetica", "bold"); d.setFontSize(22); d.text(c[1], c[0], by, { align: "center" });
+      d.setTextColor(90, 82, 108); d.setFont("helvetica", "normal"); d.setFontSize(9); d.text(c[2], c[0], by + 7, { align: "center" });
+    });
+    var fecha = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+    d.setTextColor(90, 82, 108); d.setFontSize(10);
+    d.text("Fecha de realización: " + fecha, cx, H - 24, { align: "center" });
+    d.setFontSize(8);
+    d.text("Soporte de capacitación del SG-SST. Documento generado automáticamente por la herramienta de evaluación de EUNOia SST Labs.", cx, H - 17, { align: "center" });
+    return d.output("blob");
+  }
+
+  $("dl").addEventListener("click", function () {
+    var note = $("note"); note.textContent = "";
+    var blob = buildPdf();
+    if (!blob) { note.textContent = "No se pudo preparar el PDF. Recarga la página e inténtalo de nuevo."; return; }
+    var slug = state.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "participante";
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "Constancia-Emergencias-" + slug + ".pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    note.textContent = "Constancia descargada.";
+  });
+})();
+</script>
+</body>
+</html>
