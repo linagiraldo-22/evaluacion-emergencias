@@ -178,6 +178,7 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .linkbox.on { display: block; }
 footer { font-size: .8rem; color: var(--muted); text-align: left; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; display: none; }
 </style>
 </head>
 <body>
@@ -258,6 +259,8 @@ footer { font-size: .8rem; color: var(--muted); text-align: left; }
 
   <footer>© EUNOia SST Labs · Herramienta gamificada de evaluación en Seguridad y Salud en el Trabajo</footer>
 </div>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -343,6 +346,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: left; }
       else b.classList.add("dim");
     });
     $("qp").textContent = state.score;
+    if (ok) { var r = btns[idx].getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, 90); }
     var fb = $("fb");
     fb.className = "fb " + (ok ? "ok" : "no");
     fb.innerHTML = "";
@@ -382,11 +386,56 @@ footer { font-size: .8rem; color: var(--muted); text-align: left; }
       li.appendChild(d); li.appendChild(t); li.appendChild(s); rv.appendChild(li);
     });
     show("result");
+    if (state.score === 100) burst(window.innerWidth / 2, window.innerHeight * 0.35, 150);
     var fg = $("ringfg");
     fg.style.strokeDashoffset = "326.7";
     requestAnimationFrame(function () { requestAnimationFrame(function () {
       fg.style.strokeDashoffset = String(326.7 * (1 - state.score / 100));
     }); });
+  }
+
+  /* Confeti */
+  var cvs = $("confetti"), cctx = cvs.getContext("2d"), parts = [], raf = 0, last = 0, dpr = 1;
+  var CONF = ["#7B52AB", "#A98BD3", "#14B899", "#3DD6B5", "#F5B83D", "#F28BB5", "#FFFFFF"];
+  function sizeCanvas() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cvs.width = Math.round(window.innerWidth * dpr); cvs.height = Math.round(window.innerHeight * dpr);
+  }
+  function burst(x, y, n) {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    sizeCanvas();
+    for (var k = 0; k < n; k++) {
+      var ang = -Math.PI * (0.08 + Math.random() * 0.84), sp = 380 + Math.random() * 620;
+      parts.push({
+        x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        w: 6 + Math.random() * 7, h: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 14,
+        c: CONF[(Math.random() * CONF.length) | 0], round: Math.random() < 0.3,
+        life: 0, max: 1.5 + Math.random() * 1.1
+      });
+    }
+    cvs.style.display = "block";
+    if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
+  }
+  function tick(now) {
+    var dt = Math.min((now - last) / 1000, 0.05); last = now;
+    cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    parts = parts.filter(function (p) { return p.life < p.max && p.y < window.innerHeight + 40; });
+    parts.forEach(function (p) {
+      p.life += dt;
+      p.vx *= 1 - 1.5 * dt; p.vy = p.vy * (1 - 0.9 * dt) + 1300 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+      var left = p.max - p.life;
+      cctx.globalAlpha = left < 0.45 ? Math.max(left / 0.45, 0) : 1;
+      cctx.fillStyle = p.c;
+      cctx.save(); cctx.translate(p.x, p.y); cctx.rotate(p.rot);
+      if (p.round) { cctx.beginPath(); cctx.arc(0, 0, p.h / 1.4, 0, 6.283); cctx.fill(); }
+      else cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      cctx.restore();
+    });
+    cctx.globalAlpha = 1;
+    if (parts.length) raf = requestAnimationFrame(tick);
+    else { raf = 0; cvs.style.display = "none"; }
   }
 
   $("form").addEventListener("submit", function (e) {
@@ -436,41 +485,99 @@ footer { font-size: .8rem; color: var(--muted); text-align: left; }
 
   function buildPdf() {
     var J = window.jspdf && window.jspdf.jsPDF; if (!J) return null;
-    var d = new J({ orientation: "landscape", unit: "mm", format: "a4" });
-    var W = 297, H = 210, cx = W / 2;
+    var d = new J({ orientation: "portrait", unit: "mm", format: "a4" });
+    var W = 210, H = 297;
+    var PUR = [123, 82, 171], PURD = [92, 56, 137], PURS = [240, 234, 248], BG = [246, 242, 251],
+        TEAL = [20, 184, 153], TEALD = [12, 138, 114], TEALS = [224, 245, 240],
+        ROSE = [184, 58, 43], ROSES = [251, 234, 230], AMB = [138, 94, 8], AMBS = [253, 243, 215],
+        INK = [30, 22, 48], MUT = [101, 93, 120], WHITE = [255, 255, 255];
+    function fill(c) { d.setFillColor(c[0], c[1], c[2]); }
+    function ink(c) { d.setTextColor(c[0], c[1], c[2]); }
+    function stroke(c) { d.setDrawColor(c[0], c[1], c[2]); }
+    function alpha(a) { d.setGState(new d.GState({ opacity: a })); }
+    function font(style, size) { d.setFont("helvetica", style); d.setFontSize(size); }
     var hits = state.picks.filter(function (p, k) { return p === QUESTIONS[k].a; }).length;
-    d.setFillColor(123, 82, 171); d.rect(0, 0, W, 34, "F");
-    d.setTextColor(255, 255, 255); d.setFont("helvetica", "bold"); d.setFontSize(22);
-    d.text("EUNOia SST Labs", 20, 21);
-    d.setFont("helvetica", "normal"); d.setFontSize(10);
-    d.text("SEGURIDAD Y SALUD EN EL TRABAJO", W - 20, 21, { align: "right" });
-    d.setDrawColor(20, 184, 153); d.setLineWidth(1.2); d.rect(10, 44, W - 20, H - 54);
-    d.setTextColor(123, 82, 171); d.setFont("helvetica", "bold"); d.setFontSize(26);
-    d.text("Constancia de participación", cx, 66, { align: "center" });
-    d.setTextColor(90, 82, 108); d.setFont("helvetica", "normal"); d.setFontSize(12);
-    d.text("Se deja constancia de que", cx, 80, { align: "center" });
-    d.setTextColor(30, 22, 48); d.setFont("helvetica", "bold");
-    fit(d, state.name, W - 60, 30, 14); d.text(state.name, cx, 98, { align: "center" });
-    var y = 106;
+    var lv = level(state.score).t;
+
+    d.setProperties({ title: "Constancia de participación - " + state.name, author: "EUNOia SST Labs" });
+
+    /* fondo y decoración */
+    fill(BG); d.rect(0, 0, W, H, "F");
+    alpha(0.22); fill(TEAL); d.circle(W - 6, 24, 46, "F");
+    alpha(0.14); fill(PUR); d.circle(10, H - 20, 56, "F");
+    alpha(0.10); fill(PURD); d.roundedRect(17, 25, 176, 254, 9, 9, "F");
+    alpha(1);
+
+    /* tarjeta */
+    fill(WHITE); d.roundedRect(15, 22, 180, 254, 9, 9, "F");
+
+    /* encabezado */
+    fill(PUR); d.roundedRect(15, 22, 180, 70, 9, 9, "F"); d.rect(15, 60, 180, 32, "F");
+    alpha(0.14); fill(WHITE); d.circle(176, 38, 16, "F"); d.circle(150, 24, 7, "F"); d.circle(30, 88, 9, "F");
+    alpha(1);
+    fill(TEAL); d.roundedRect(28, 31, 26, 7, 3.5, 3.5, "F");
+    ink([6, 35, 29]); font("bold", 7.5); d.text("SG-SST", 41, 35.9, { align: "center" });
+    ink(WHITE); font("bold", 14); d.text("EUNOia SST Labs", 28, 49);
+    font("bold", 21); d.text("Constancia de", 28, 65); d.text("participación", 28, 76);
+
+    /* medalla de puntaje */
+    fill(WHITE); d.circle(158, 92, 27, "F");
+    fill(TEAL); d.circle(158, 92, 23.5, "F");
+    fill(WHITE); d.circle(158, 92, 18, "F");
+    ink(PURD); font("bold", 24); d.text(String(state.score), 158, 94, { align: "center" });
+    ink(MUT); font("normal", 6.5); d.text("DE 100 PUNTOS", 158, 100.5, { align: "center" });
+
+    /* destinatario */
+    ink(MUT); font("normal", 10); d.text("Se deja constancia de que", 28, 113);
+    ink(PURD); font("bold", 22); fit(d, state.name, 150, 22, 12); d.text(state.name, 28, 127);
     if (state.cargo) {
-      d.setFont("helvetica", "normal"); d.setTextColor(90, 82, 108); d.setFontSize(12);
-      d.text(state.cargo, cx, y, { align: "center" }); y += 10;
+      font("bold", 9);
+      var cw = Math.min(150, d.getTextWidth(state.cargo) + 12);
+      fill(PURS); d.roundedRect(28, 132, cw, 8, 4, 4, "F");
+      ink(PURD); d.text(state.cargo, 28 + cw / 2, 137.3, { align: "center", maxWidth: 144 });
     }
-    d.setFont("helvetica", "normal"); d.setTextColor(90, 82, 108); d.setFontSize(12);
-    d.text("completó la evaluación gamificada", cx, y + 4, { align: "center" });
-    d.setFont("helvetica", "bold"); d.setTextColor(30, 22, 48); d.setFontSize(16);
-    d.text("Manual Integral de Emergencias y Supervivencia Urbana", cx, y + 14, { align: "center" });
-    var by = y + 34;
-    var cols = [[cx - 70, String(state.score) + " / 100", "PUNTAJE"], [cx, hits + " / " + N, "ACIERTOS"], [cx + 70, state.score + "%", "RENDIMIENTO"]];
-    cols.forEach(function (c) {
-      d.setTextColor(12, 138, 114); d.setFont("helvetica", "bold"); d.setFontSize(22); d.text(c[1], c[0], by, { align: "center" });
-      d.setTextColor(90, 82, 108); d.setFont("helvetica", "normal"); d.setFontSize(9); d.text(c[2], c[0], by + 7, { align: "center" });
+    ink(MUT); font("normal", 10); d.text("completó la evaluación gamificada", 28, 152);
+    ink(INK); font("bold", 13);
+    d.text("Manual Integral de Emergencias", 28, 161);
+    d.text("y Supervivencia Urbana", 28, 168);
+
+    /* indicadores */
+    var chips = [
+      [28, TEALS, TEALD, hits + " / " + N, "ACIERTOS"],
+      [81, PURS, PURD, state.score + "%", "RENDIMIENTO"],
+      [134, AMBS, AMB, lv, "NIVEL"]
+    ];
+    chips.forEach(function (c) {
+      fill(c[1]); d.roundedRect(c[0], 180, 48, 26, 6, 6, "F");
+      ink(c[2]); font("bold", 17); fit(d, c[3], 40, 17, 8);
+      d.text(c[3], c[0] + 24, 193, { align: "center" });
+      ink(MUT); font("bold", 7); d.text(c[4], c[0] + 24, 201, { align: "center", charSpace: 0.6 });
     });
+
+    /* insignias por tema */
+    ink(MUT); font("bold", 7.5); d.text("INSIGNIAS POR TEMA", 28, 218, { align: "left", charSpace: 0.6 });
+    var x = 28, y = 222, h = 8.5;
+    QUESTIONS.forEach(function (q, k) {
+      var ok = state.picks[k] === q.a;
+      font("bold", 8);
+      var w = d.getTextWidth(q.tema) + 17;
+      if (x + w > 182) { x = 28; y += h + 3; }
+      fill(ok ? TEALS : ROSES); d.roundedRect(x, y, w, h, 4.25, 4.25, "F");
+      fill(ok ? TEAL : ROSE); d.circle(x + 5.5, y + h / 2, 2.6, "F");
+      stroke(WHITE); d.setLineWidth(0.5);
+      var ix = x + 5.5, iy = y + h / 2;
+      if (ok) { d.line(ix - 1.2, iy + 0.1, ix - 0.3, iy + 1); d.line(ix - 0.3, iy + 1, ix + 1.3, iy - 1); }
+      else { d.line(ix - 1, iy - 1, ix + 1, iy + 1); d.line(ix - 1, iy + 1, ix + 1, iy - 1); }
+      ink(ok ? TEALD : ROSE); font("bold", 8); d.text(q.tema, x + 10.5, y + 5.6);
+      x += w + 3;
+    });
+
+    /* pie */
+    stroke(PURS); d.setLineWidth(0.4); d.line(28, 257, 182, 257);
     var fecha = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
-    d.setTextColor(90, 82, 108); d.setFontSize(10);
-    d.text("Fecha de realización: " + fecha, cx, H - 24, { align: "center" });
-    d.setFontSize(8);
-    d.text("Soporte de capacitación del SG-SST. Documento generado automáticamente por la herramienta de evaluación de EUNOia SST Labs.", cx, H - 17, { align: "center" });
+    ink(MUT); font("normal", 8.5); d.text("Fecha de realización: " + fecha, 28, 264);
+    font("normal", 7);
+    d.text(d.splitTextToSize("Soporte de capacitación del SG-SST. Documento generado automáticamente por la herramienta de evaluación de EUNOia SST Labs.", 154), 28, 269);
     return d.output("blob");
   }
 
